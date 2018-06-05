@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+[ "$DEBUG" == 'true' ] && set -x
+. "$(dirname $0)/"common.sh
+
+if [ -z "$REPOSITORY_LOCATION" ]; then
+    echo "REPOSITORY_LOCATION not set"
+    exit 128
+fi
+
+# Defaults
+: ${REPOSITORY_NAME:='elasticsearch-toolbox'}
+: ${SNAPSHOT:=$(date +%Y%m%d%H%M)}
+: ${RETENTION_COUNT:='14'}
+: ${ELASTICSEARCH_USER=''}
+: ${ELASTICSEARCH_PASS=''}
+
+wait_elasticsearch
+
+echo ">> Create the repository, if does not already exist"
+curl --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT -d "{ \"type\": \"fs\", \"settings\": { \"location\": \"${REPOSITORY_LOCATION}\" } }" http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}
+
+echo ">> Perform the snapshot"
+curl --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}/${SNAPSHOT}?wait_for_completion=true
+
+echo ">> Remove excess snapshots"
+echo "noop"
+
+echo "Done."
