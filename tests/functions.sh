@@ -19,6 +19,14 @@ function cleanup {
     rm_container ${@-$TEST_CONTAINER}
 }
 
+function make_temp {
+    TMPDIR=$(mktemp -d || exit 1)
+    chmod 1777 $TMPDIR
+    chown 0:0 $TMPDIR
+    trap '{ rm -f "$TMPDIR"; }' SIGINT SIGTERM
+    echo "${TMPDIR}"
+}
+
 function wait_on_http {
     TIMEOUT=$1
     shift
@@ -63,7 +71,7 @@ function check_docker {
 
 function check_environment {
     echo "=> Testing environment"
-    docker version > /dev/null 
+    docker version > /dev/null
     which curl > /dev/null
 }
 
