@@ -8,6 +8,6 @@ cat << EOF
 
   Please choose a command:
 
-     backup <databases>
+     backup
 
 EOF
