@@ -19,12 +19,25 @@ fi
 wait_elasticsearch
 
 echo ">> Create the repository, if does not already exist"
-curl --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT -d "{ \"type\": \"fs\", \"settings\": { \"location\": \"${REPOSITORY_LOCATION}\" } }" http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}
+RES=$(curl -s --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT -d "{ \"type\": \"fs\", \"settings\": { \"location\": \"${REPOSITORY_LOCATION}\" } }" http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME})
+[ "${RES}" == '{"acknowledged":true}' ] || { echo "Error: ${RES}"; exit 128; }
 
 echo ">> Perform the snapshot"
-curl --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}/${SNAPSHOT}?wait_for_completion=true
+RES=$(curl -s --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X PUT http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}/${SNAPSHOT}?wait_for_completion=true)
+[ "$(echo ${RES} | jq .snapshot.failures)" == "[]" ] || { echo "Error: ${RES}"; exit 128; }
 
 echo ">> Remove excess snapshots"
-echo "noop"
+RES=$(curl -s --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}/_all)
+SNAPSHOTS=($(echo ${RES} | jq --raw-output .snapshots[].snapshot | sort))
+
+if [ "${#SNAPSHOTS[@]}" -gt ${RETENTION_COUNT} ]; then
+  for i in $(seq 0 $RETENTION_COUNT); do
+    echo "Removing ${SNAPSHOTS[$i]}"
+    RES=$(curl -s --user ${ELASTICSEARCH_USER}:${ELASTICSEARCH_PASS} -H "Accept: application/json" -H "Content-Type: application/json" -X DELETE http://${HOST}:${PORT}/_snapshot/${REPOSITORY_NAME}/${SNAPSHOTS[$i]})
+    [ "${RES}" == '{"acknowledged":true}' ] || { echo "Error: ${RES}"; exit 128; }
+  done
+else
+  echo "None removed"
+fi
 
 echo "Done."

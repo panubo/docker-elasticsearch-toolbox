@@ -35,4 +35,4 @@ Some subcommands require additional environment parameters.
 
 ## Status
 
-Work in progress.
+Usable, however feature incomplete. Work in progress.
