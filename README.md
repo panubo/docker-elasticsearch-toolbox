@@ -1,6 +1,6 @@
 # Elasticsearch Toolbox
 
-[![Build Status](https://travis-ci.org/panubo/docker-elasticsearch-toolbox.svg?branch=master)](https://travis-ci.org/panubo/docker-elasticsearch-toolbox)
+**BUILD IS BROKEN**
 
 A collection of Elasticsearch scripts for automating common tasks in a Docker-centric way.
 
